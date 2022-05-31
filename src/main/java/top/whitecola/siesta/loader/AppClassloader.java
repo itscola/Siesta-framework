@@ -1,32 +1,44 @@
 package top.whitecola.siesta.loader;
 
-import lombok.Data;
+import top.whitecola.siesta.SiestaContext;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Vector;
 
-@Data
 public class AppClassloader extends ClassLoader {
     private ClassLoader parent = this.getClass().getClassLoader();
-    private List<String> loadList;
-    private List<String> afterHookLoading = new ArrayList<>();
+    private List<String> parentClasses;
+    // private SiestaContext context;
+    private IClassHandler handler;
 
-    public AppClassloader(List<String> loadList){
+
+
+    public AppClassloader(){
         super(null);
-        this.loadList = loadList;
+        // this.context = context;
+        this.handler = new ClassHandler();
+        // this.parentClasses = parentLoadList;
+        
     }
 
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        for(String theName : loadList){
-            if(name.equals(theName)){
-                Class<?> clazz = findClass(name);
-
-            }
+        
+        if(this.isForParentLoader(name)){
+            return this.parent.loadClass(name);
         }
-        return super.loadClass(name, resolve);
+        Class<?> loaddedClass = findLoadedClass(name;)
+        if(loaddedClass!=null){
+            return loaddedClass;
+        }
+
+        Class<?> clazz = super.loadClass(name);
+        clazz = this.handler.doTransform(clazz);
+        // context.addToBeansMapIfIs(clazz);
+        return clazz;
+    }
+
+    protected boolean isForParentLoader(String clazzName){
+        return parentClasses.contains(clazzName);
     }
 
 

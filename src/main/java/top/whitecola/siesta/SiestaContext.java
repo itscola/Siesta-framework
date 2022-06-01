@@ -1,9 +1,13 @@
 package top.whitecola.siesta;
 
 import top.whitecola.siesta.annotation.Component;
+import top.whitecola.siesta.annotation.Inject;
 import top.whitecola.siesta.loader.AppClassloader;
 
 import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,20 +28,34 @@ public class SiestaContext {
         loader = new AppClassloader();
         Thread.currentThread().setContextClassLoader(loader);
         scan(thePackages);
-        newBeanInstances();
+        newBeansInstance();
     }
 
     public static SiestaContext getSiestaContext() {
         return siestaContext;
     }
 
-    public void newBeanInstances(){
-
+    public void newBeansInstance(){
+        for(String beanName : classMap.keySet()){
+            getBean(beanName);
+        }
     }
 
 
+    public Object getBean(String name){
+        Object bean;
+        if((bean = this.beans.get(name))==null){
+            bean = createBean(name);
+        }
+        return bean;
+    }
 
-
+    public Object createBean(String name){
+        Class<?> beanClass = this.classMap.get(name);
+        Object beanObj = this.newInstance(beanClass);
+        this.beans.put(name, beanObj);
+        return beanObj;
+    }
 
 
     public void scan(String thePackages){
@@ -64,16 +82,44 @@ public class SiestaContext {
         }
 
         String beanName = clazz.getSimpleName();
-        this.beans.put(beanName, clazz)
+        this.beans.put(beanName, clazz);
     }
 
     private Object newInstance(Class<?> clazz){
+        Object beanObj = null;
+        
+        // Constructor[] constructors = clazz.getDeclaredConstructors();
+        // if(constructors.length!=1){
+        //     return null;
+        // }
+
+        try {
+            beanObj = clazz.getDeclaredConstructor().newInstance();
+            beanObj = handleInjections(beanObj, clazz);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return beanObj;
+    }
+
+    private Object handleInjections(Object beanObj,Class<?> beanClass) throws IllegalArgumentException, IllegalAccessException{
+        for(Field field : beanClass.getDeclaredFields()){
+            field.setAccessible(true);
+            if(!field.isAnnotationPresent(Inject.class)){
+                continue;
+            }
+            field.set(beanObj, doInject(field));
+        }
+        return beanObj;
+
+    }
+
+    private Field doInject(Field field){
+        
         return null;
     }
 
-    public Object getBean(String name){
-        return this.beans.get(name);
-    }
+    
 
 
 

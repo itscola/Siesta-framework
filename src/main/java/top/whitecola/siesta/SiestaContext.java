@@ -114,7 +114,7 @@ public class SiestaContext {
 
     }
 
-    private Field doInject(Field field){
+    private Object doInject(Field field){
         
         return null;
     }

@@ -10,6 +10,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URL;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SiestaContext {
@@ -17,18 +18,24 @@ public class SiestaContext {
     private AppClassloader loader;
     private ConcurrentHashMap<String,Class<?>> classMap = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String,Object> beans = new ConcurrentHashMap<>();
+    private String mainClass;
 
     private SiestaContext(){ }
 
 
     public void runApplication() {
         String thePackages = new Exception().getStackTrace()[1].toString();
-        thePackages = thePackages.substring(0,thePackages.lastIndexOf("."));
+        thePackages = thePackages.substring(0,thePackages.lastIndexOf("main")-1).replace(".", File.separator);
+        
+        //todo
+        
+        
+        mainClass = thePackages;
         // needToLoadClazz = scan(thePackage);
         loader = new AppClassloader();
         Thread.currentThread().setContextClassLoader(loader);
         scan(thePackages);
-        newBeansInstance();
+        // newBeansInstance();
     }
 
     public static SiestaContext getSiestaContext() {
@@ -50,6 +57,10 @@ public class SiestaContext {
         return bean;
     }
 
+    public Object getBean(Class<?> clazz){
+        return getBean(clazz.getSimpleName());
+    }
+
     public Object createBean(String name){
         Class<?> beanClass = this.classMap.get(name);
         Object beanObj = this.newInstance(beanClass);
@@ -59,7 +70,13 @@ public class SiestaContext {
 
 
     public void scan(String thePackages){
-        URL resource = loader.getResource(thePackages);
+        URL resource = this.getClass().getClassLoader().getResource(thePackages);
+
+        if(resource==null){
+            System.out.println(thePackages);
+            return;
+        }
+
         File dir = new File(resource.getPath());
         for(File file : dir.listFiles()){
             if(file.isDirectory()){
@@ -104,19 +121,26 @@ public class SiestaContext {
 
     private Object handleInjections(Object beanObj,Class<?> beanClass) throws IllegalArgumentException, IllegalAccessException{
         for(Field field : beanClass.getDeclaredFields()){
-            field.setAccessible(true);
             if(!field.isAnnotationPresent(Inject.class)){
                 continue;
             }
-            field.set(beanObj, doInject(field));
+            field.setAccessible(true);
+            field.set(beanObj, doInject(field.getType()));
         }
         return beanObj;
 
     }
 
-    private Object doInject(Field field){
-        
-        return null;
+    public Object doInject(Class<?> clazz){
+        if(clazz.isInterface()){
+            for(Map.Entry<String,Class<?>> entry: this.classMap.entrySet()){
+                if(clazz.isAssignableFrom(entry.getValue())){
+                    return getBean(entry.getValue());
+                }
+            }
+        }
+
+        return getBean(clazz);
     }
 
     

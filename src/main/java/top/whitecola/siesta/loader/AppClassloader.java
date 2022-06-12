@@ -2,6 +2,9 @@ package top.whitecola.siesta.loader;
 
 import top.whitecola.siesta.SiestaContext;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.List;
 
@@ -10,7 +13,7 @@ public class AppClassloader extends ClassLoader {
     private List<String> parentClasses = Arrays.asList("java.");
     // private SiestaContext context;
     private IClassHandler handler;
-
+    private String scope;
 
 
     public AppClassloader(){
@@ -18,42 +21,44 @@ public class AppClassloader extends ClassLoader {
         // this.context = context;
         this.handler = new ClassHandler();
         // this.parentClasses = parentLoadList;
-        
     }
 
     @Override
-    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        
-        if(this.isForParentLoader(name)){
+    public Class<?> loadClass(String name) throws ClassNotFoundException {
+        if(!name.startsWith(this.scope)){
             return this.parent.loadClass(name);
         }
+
         Class<?> loaddedClass = findLoadedClass(name);
         if(loaddedClass!=null){
             return loaddedClass;
         }
 
-        System.out.println(name);
+        String path = name.replace(".", "/");
+        path = path.substring(0,path.lastIndexOf("/class")) + ".class";
 
-        Class<?> clazz = null;
+        InputStream is = parent.getResourceAsStream(path);
+        byte[] data = null;
+
         try {
-            clazz = super.loadClass(name);
-            clazz = this.handler.doTransform(clazz);
-        } catch (Throwable e) {
-            
+            data = new byte[is.available()];
+            is.read(data);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        
-        // context.addToBeansMapIfIs(clazz);
-        return clazz;
+
+        return defineClass(name.replace(".class",""),data,0, data.length);
     }
 
-    protected boolean isForParentLoader(String clazzName){
-        for(String name : this.parentClasses){
-            if(clazzName.startsWith(name)){
-                return true;
-            }
-        }
-        return false;
+
+
+
+
+    public AppClassloader setScopePackage(String scope){
+        this.scope = scope;
+        return this;
     }
+
 
 
 

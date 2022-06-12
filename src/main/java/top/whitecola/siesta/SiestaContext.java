@@ -19,23 +19,19 @@ public class SiestaContext {
     private ConcurrentHashMap<String,Class<?>> classMap = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String,Object> beans = new ConcurrentHashMap<>();
     private String mainClass;
+    private String scope;
 
     private SiestaContext(){ }
 
 
     public void runApplication() {
         String thePackages = new Exception().getStackTrace()[1].toString();
-        thePackages = thePackages.substring(0,thePackages.lastIndexOf("main")-1).replace(".", File.separator);
-        
-        //todo
-        
-        
-        mainClass = thePackages;
-        // needToLoadClazz = scan(thePackage);
-        loader = new AppClassloader();
+        thePackages = thePackages.substring(0,thePackages.lastIndexOf("main")-1);
+        scope = thePackages.substring(0,thePackages.lastIndexOf("."));;
+        loader = new AppClassloader().setScopePackage(scope);
         Thread.currentThread().setContextClassLoader(loader);
-        scan(thePackages);
-        // newBeansInstance();
+        scan(scope);
+        newBeansInstance();
     }
 
     public static SiestaContext getSiestaContext() {
@@ -70,19 +66,18 @@ public class SiestaContext {
 
 
     public void scan(String thePackages){
-        URL resource = this.getClass().getClassLoader().getResource(thePackages);
-
+        URL resource = this.getClass().getClassLoader().getResource(thePackages.replace(".","/"));
         if(resource==null){
-            System.out.println(thePackages);
             return;
         }
-
-        File dir = new File(resource.getPath());
+        String path = resource.getPath();
+        File dir = new File(path);
         for(File file : dir.listFiles()){
             if(file.isDirectory()){
                 scan(thePackages+"."+file.getName());
             }else{
                 try {
+
                     registerClass(thePackages+"."+file.getName());
                 } catch (ClassNotFoundException e) {
                     continue;
@@ -93,24 +88,33 @@ public class SiestaContext {
     }
 
     private void registerClass(String name) throws ClassNotFoundException{
+        //下面的问题
         Class<?> clazz = loader.loadClass(name);
+
         if(!clazz.isAnnotationPresent(Component.class)){
+            System.out.println(clazz.getName()+" is not a component.");
             return;
         }
 
         String beanName = clazz.getSimpleName();
-        this.beans.put(beanName, clazz);
+        this.classMap.put(beanName, clazz);
     }
 
     private Object newInstance(Class<?> clazz){
         Object beanObj = null;
-        
-        // Constructor[] constructors = clazz.getDeclaredConstructors();
-        // if(constructors.length!=1){
-        //     return null;
-        // }
+        if(clazz==null){
+            try {
+                this.loader.loadClass(clazz.getName());
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
 
         try {
+            if(clazz.isInterface()){
+                return doInject(clazz);
+            }
+
             beanObj = clazz.getDeclaredConstructor().newInstance();
             beanObj = handleInjections(beanObj, clazz);
         } catch (Exception e) {
@@ -134,7 +138,7 @@ public class SiestaContext {
     public Object doInject(Class<?> clazz){
         if(clazz.isInterface()){
             for(Map.Entry<String,Class<?>> entry: this.classMap.entrySet()){
-                if(clazz.isAssignableFrom(entry.getValue())){
+                if(clazz.isAssignableFrom(entry.getValue()) && clazz!=entry.getValue()){
                     return getBean(entry.getValue());
                 }
             }
@@ -143,7 +147,7 @@ public class SiestaContext {
         return getBean(clazz);
     }
 
-    
+
 
 
 

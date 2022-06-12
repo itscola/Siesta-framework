@@ -3,13 +3,17 @@ package top.whitecola.siesta;
 import top.whitecola.siesta.annotation.Component;
 import top.whitecola.siesta.annotation.Inject;
 import top.whitecola.siesta.loader.AppClassloader;
+import top.whitecola.siesta.loader.IAppMain;
 
 import java.io.File;
+import java.lang.instrument.IllegalClassFormatException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,11 +24,16 @@ public class SiestaContext {
     private ConcurrentHashMap<String,Object> beans = new ConcurrentHashMap<>();
     private String mainClass;
     private String scope;
+    private Class<?> siestaApplicationMain;
+    private String[] args;
 
     private SiestaContext(){ }
 
 
-    public void runApplication() {
+    public ClassLoader runApplication(Class<?> applicationMain,String[] args) {
+        this.siestaApplicationMain = applicationMain;
+        this.args = args;
+
         String thePackages = new Exception().getStackTrace()[1].toString();
         thePackages = thePackages.substring(0,thePackages.lastIndexOf("main")-1);
         scope = thePackages.substring(0,thePackages.lastIndexOf("."));;
@@ -32,6 +41,14 @@ public class SiestaContext {
         Thread.currentThread().setContextClassLoader(loader);
         scan(scope);
         newBeansInstance();
+        try {
+            invokeMain();
+        }catch (NoSuchMethodException|InvocationTargetException|IllegalAccessException e) {
+            e.printStackTrace();
+        }catch (IllegalClassFormatException e){
+            System.out.println(e.getMessage());
+        }
+        return loader;
     }
 
     public static SiestaContext getSiestaContext() {
@@ -147,6 +164,16 @@ public class SiestaContext {
         return getBean(clazz);
     }
 
+    public void invokeMain() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, IllegalClassFormatException {
+        Class<?>[] interfaces = this.siestaApplicationMain.getInterfaces();
+        if(!Arrays.asList(interfaces).contains(IAppMain.class)){
+            throw new IllegalClassFormatException("The "+this.siestaApplicationMain.getSimpleName()+" class didn't implement IAppMain interfaces.");
+        }
+        Object obj = getBean(this.siestaApplicationMain);
+        Method mainMethod = obj.getClass().getDeclaredMethod("AppMain",String[].class);
+        mainMethod.setAccessible(true);
+        mainMethod.invoke(obj,(Object) this.args);
+    }
 
 
 

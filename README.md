@@ -29,15 +29,15 @@ public class Speaker implements ISpeaker, Listener {
     }
     
     @Override
-    public boolean onBeingInjected() {
-        System.out.println("The bean has been injected by a bean.");
-        return Listener.super.onBeingInjected();
+    public boolean onBeingInjected(Object bean) {
+        System.out.println("The bean has been injected by a bean named "+bean.getClass().getSimpleName());
+        return Listener.super.onBeingInjected(bean);
     }
 
     @Override
-    public boolean onInjectingBean() {
-        System.out.println("The bean has injected into a bean.");
-        return Listener.super.onInjectingBean();
+    public boolean onInjectingBean(Object bean) {
+        System.out.println("The bean has injected into a bean named "+bean.getClass().getSimpleName());
+        return Listener.super.onInjectingBean(bean);
     }
 
 //    @Override

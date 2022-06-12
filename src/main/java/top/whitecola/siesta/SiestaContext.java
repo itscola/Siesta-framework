@@ -163,16 +163,25 @@ public class SiestaContext extends BeanFactory{
                 continue;
             }
 
-            if(InterfaceUtils.hasInterface(beanObj.getClass(),Listener.class)) {
+            field.setAccessible(true);
+            Object bean = doInject(field.getType());
+            field.set(beanObj, bean);
+
+            if(InterfaceUtils.hasInterface(bean.getClass(),Listener.class)) {
                 try {
-                    beanObj.getClass().getMethod("onInjectingBean").invoke(beanObj);
+                    bean.getClass().getMethod("onBeingInjected",Object.class).invoke(bean,beanObj);
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
             }
 
-                field.setAccessible(true);
-            field.set(beanObj, doInject(field.getType()));
+            if(InterfaceUtils.hasInterface(beanObj.getClass(),Listener.class)) {
+                try {
+                    beanObj.getClass().getMethod("onInjectingBean",Object.class).invoke(beanObj,bean);
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            }
         }
         return beanObj;
 
@@ -183,13 +192,13 @@ public class SiestaContext extends BeanFactory{
             for(Map.Entry<String,Class<?>> entry: this.classMap.entrySet()){
                 if(clazz.isAssignableFrom(entry.getValue()) && clazz!=entry.getValue()){
                     Object obj = getBean(entry.getValue());
-                    if(InterfaceUtils.hasInterface(obj.getClass(),Listener.class)){
-                        try {
-                            obj.getClass().getMethod("onBeingInjected").invoke(obj);
-                        } catch (Throwable e) {
-                            e.printStackTrace();
-                        }
-                    }
+//                    if(InterfaceUtils.hasInterface(obj.getClass(),Listener.class)){
+//                        try {
+//                            obj.getClass().getMethod("onBeingInjected",Object.class).invoke(obj);
+//                        } catch (Throwable e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
                     return obj;
                 }
             }

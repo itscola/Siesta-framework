@@ -7,7 +7,7 @@ import top.whitecola.siesta.loader.IAppMain;
 import top.whitecola.test.beans.ISpeaker;
 
 @ApplicationMain
-public class Main implements IAppMain, Listener {
+public class Main implements IAppMain {
 //    @Inject
 //    private ISpeaker iSpeaker;
 
@@ -19,18 +19,4 @@ public class Main implements IAppMain, Listener {
         iSpeaker.speak();
     }
 
-    @Override
-    public boolean onBeanCreate() {
-        return Listener.super.onBeanCreate();
-    }
-
-    @Override
-    public boolean onInjectingBean() {
-        return Listener.super.onInjectingBean();
-    }
-
-    @Override
-    public boolean onBeingInjected() {
-        return Listener.super.onBeingInjected();
-    }
 }

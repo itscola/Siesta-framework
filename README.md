@@ -21,11 +21,29 @@ public class Main implements IAppMain {
 
 ```java
 @Component
-public class Speaker implements ISpeaker{
+public class Speaker implements ISpeaker, Listener {
     @Override
     public void speak() {
         System.out.println("Hi World.");
         
     }
+    
+    @Override
+    public boolean onBeingInjected() {
+        System.out.println("The bean has been injected by a bean.");
+        return Listener.super.onBeingInjected();
+    }
+
+    @Override
+    public boolean onInjectingBean() {
+        System.out.println("The bean has injected into a bean.");
+        return Listener.super.onInjectingBean();
+    }
+
+//    @Override
+//    public boolean onBeanCreate() {
+//        System.out.println("The bean has been created.");
+//        return Listener.super.onBeanCreate();
+//    }
 }
 ```

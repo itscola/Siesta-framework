@@ -7,8 +7,11 @@ import top.whitecola.test.beans.ISpeaker;
 
 @ApplicationMain
 public class Main implements IAppMain {
+//    @Inject
+//    private ISpeaker iSpeaker;
+
     @Inject
-    ISpeaker iSpeaker;
+    private static ISpeaker iSpeaker;
 
     @Override
     public void AppMain(String[] args) {

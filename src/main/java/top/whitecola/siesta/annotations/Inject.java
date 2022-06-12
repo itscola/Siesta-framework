@@ -1,4 +1,4 @@
-package top.whitecola.siesta.annotation;
+package top.whitecola.siesta.annotations;
 
 
 import java.lang.annotation.ElementType;

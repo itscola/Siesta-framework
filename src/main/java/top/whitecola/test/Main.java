@@ -1,12 +1,11 @@
 package top.whitecola.test;
 
-import top.whitecola.siesta.SiestaContext;
-import top.whitecola.siesta.annotation.Component;
-import top.whitecola.siesta.annotation.Inject;
+import top.whitecola.siesta.annotations.ApplicationMain;
+import top.whitecola.siesta.annotations.Inject;
 import top.whitecola.siesta.loader.IAppMain;
 import top.whitecola.test.beans.ISpeaker;
 
-@Component
+@ApplicationMain
 public class Main implements IAppMain {
     @Inject
     ISpeaker iSpeaker;

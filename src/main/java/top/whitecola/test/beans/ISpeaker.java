@@ -1,6 +1,6 @@
 package top.whitecola.test.beans;
 
-import top.whitecola.siesta.annotation.Component;
+import top.whitecola.siesta.annotations.Component;
 
 @Component
 public interface ISpeaker {

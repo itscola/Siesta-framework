@@ -1,17 +1,16 @@
 package top.whitecola.siesta;
 
-import top.whitecola.siesta.annotation.Component;
-import top.whitecola.siesta.annotation.Inject;
+import top.whitecola.siesta.annotations.ApplicationMain;
+import top.whitecola.siesta.annotations.Component;
+import top.whitecola.siesta.annotations.Inject;
 import top.whitecola.siesta.loader.AppClassloader;
 import top.whitecola.siesta.loader.IAppMain;
 
 import java.io.File;
 import java.lang.instrument.IllegalClassFormatException;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Map;
@@ -108,7 +107,7 @@ public class SiestaContext {
         //下面的问题
         Class<?> clazz = loader.loadClass(name);
 
-        if(!clazz.isAnnotationPresent(Component.class)){
+        if(!clazz.isAnnotationPresent(Component.class) && !clazz.isAnnotationPresent(ApplicationMain.class)){
             System.out.println(clazz.getName()+" is not a component.");
             return;
         }

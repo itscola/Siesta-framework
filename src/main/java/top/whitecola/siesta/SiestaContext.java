@@ -3,8 +3,10 @@ package top.whitecola.siesta;
 import top.whitecola.siesta.annotations.ApplicationMain;
 import top.whitecola.siesta.annotations.Component;
 import top.whitecola.siesta.annotations.Inject;
+import top.whitecola.siesta.listeners.Listener;
 import top.whitecola.siesta.loader.AppClassloader;
 import top.whitecola.siesta.loader.IAppMain;
+import top.whitecola.siesta.utils.InterfaceUtils;
 
 import java.io.File;
 import java.lang.instrument.IllegalClassFormatException;
@@ -16,7 +18,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class SiestaContext {
+public class SiestaContext extends BeanFactory{
     private static SiestaContext siestaContext = new SiestaContext();
     private AppClassloader loader;
     private ConcurrentHashMap<String,Class<?>> classMap = new ConcurrentHashMap<>();
@@ -61,6 +63,7 @@ public class SiestaContext {
     }
 
 
+    @Override
     public Object getBean(String name){
         Object bean;
         if((bean = this.beans.get(name))==null){
@@ -69,13 +72,27 @@ public class SiestaContext {
         return bean;
     }
 
+    @Override
     public Object getBean(Class<?> clazz){
         return getBean(clazz.getSimpleName());
     }
 
+    @Override
+    public <T> T getBean(T clazz) {
+        return (T) getBean(clazz.getClass().getSimpleName());
+    }
+
+    @Override
     public Object createBean(String name){
         Class<?> beanClass = this.classMap.get(name);
         Object beanObj = this.newInstance(beanClass);
+        if(!beanClass.isInterface()&&InterfaceUtils.hasInterface(beanClass, Listener.class)){
+            try {
+                beanClass.getMethod("onBeanCreate").invoke(beanObj);
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        }
         this.beans.put(name, beanObj);
         return beanObj;
     }
@@ -140,11 +157,21 @@ public class SiestaContext {
     }
 
     private Object handleInjections(Object beanObj,Class<?> beanClass) throws IllegalArgumentException, IllegalAccessException{
+
         for(Field field : beanClass.getDeclaredFields()){
             if(!field.isAnnotationPresent(Inject.class)){
                 continue;
             }
-            field.setAccessible(true);
+
+            if(InterfaceUtils.hasInterface(beanObj.getClass(),Listener.class)) {
+                try {
+                    beanObj.getClass().getMethod("onInjectingBean").invoke(beanObj);
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            }
+
+                field.setAccessible(true);
             field.set(beanObj, doInject(field.getType()));
         }
         return beanObj;
@@ -155,7 +182,15 @@ public class SiestaContext {
         if(clazz.isInterface()){
             for(Map.Entry<String,Class<?>> entry: this.classMap.entrySet()){
                 if(clazz.isAssignableFrom(entry.getValue()) && clazz!=entry.getValue()){
-                    return getBean(entry.getValue());
+                    Object obj = getBean(entry.getValue());
+                    if(InterfaceUtils.hasInterface(obj.getClass(),Listener.class)){
+                        try {
+                            obj.getClass().getMethod("onBeingInjected").invoke(obj);
+                        } catch (Throwable e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    return obj;
                 }
             }
         }
@@ -164,8 +199,7 @@ public class SiestaContext {
     }
 
     public void invokeMain() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, IllegalClassFormatException {
-        Class<?>[] interfaces = this.siestaApplicationMain.getInterfaces();
-        if(!Arrays.asList(interfaces).contains(IAppMain.class)){
+        if(!InterfaceUtils.hasInterface(siestaApplicationMain,IAppMain.class)){
             throw new IllegalClassFormatException("The "+this.siestaApplicationMain.getSimpleName()+" class didn't implement IAppMain interfaces.");
         }
         Object obj = getBean(this.siestaApplicationMain);

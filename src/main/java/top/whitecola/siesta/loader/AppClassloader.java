@@ -11,7 +11,6 @@ import java.util.List;
 public class AppClassloader extends ClassLoader {
     private ClassLoader parent = this.getClass().getClassLoader();
     private List<String> parentClasses = Arrays.asList("java.");
-    // private SiestaContext context;
     private IClassHandler handler;
     private String scope;
 

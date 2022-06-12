@@ -18,3 +18,14 @@ public class Main implements IAppMain {
     }
 }
 ```
+
+```java
+@Component
+public class Speaker implements ISpeaker{
+    @Override
+    public void speak() {
+        System.out.println("Hi World.");
+        
+    }
+}
+```

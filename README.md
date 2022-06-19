@@ -13,7 +13,7 @@ public class Main implements IAppMain {
     private static ISpeaker iSpeaker;
 
     @Override
-    public void appMain(String[] args) {
+    public void AppMain(String[] args) {
         iSpeaker.speak();
     }
 }
